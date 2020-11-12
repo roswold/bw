@@ -10,3 +10,4 @@ src/ld48hr40: src/main.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 clean:
 	$(RM) ld48hr40
+	@make clean -C src

@@ -160,7 +160,15 @@ void FreeGfx(Gfx**gfx,int n)
 
 void Print(Gfx*scr,int x,int y,Pixel col,char*str)
 {
-	//TTF_RenderText_Blended(scr->font,str,(SDL_Color){.r=col.r,.g=col.g,.b=col.b});
+	SDL_Surface*s=TTF_RenderText_Solid(scr->font,str,
+			(SDL_Color){.r=col.r,.g=col.g,.b=col.b,.a=col.a});
+	SDL_Texture*t=SDL_CreateTextureFromSurface(scr->ren,s);
+	SDL_Rect e={.x=x,.y=y,.w=s->w,.h=s->h};
+
+	SDL_RenderCopy(scr->ren,t,NULL,&e);
+
+	SDL_FreeSurface(s);
+	SDL_DestroyTexture(t);
 }
 
 void Fill(Gfx*scr,int x,int y,int w,int h,Pixel bgc)
@@ -1085,8 +1093,8 @@ int main(int argc, char**argv)
 	Gfx *spr_title=LoadImage("data/gfx/title.png",screen->ren);
 
 	// Load font
-	puts("loading font");
-	//screen->font=TTF_OpenFont("DejaVuSansMono.ttf",10);
+	screen->font=TTF_OpenFont("data/gfx/DejaVuSerif.ttf",12);
+	if(!screen->font)puts("like we didn't load the font bros");
 
 	// Clear screen initially
 	Clear(screen,(Pixel){0});
@@ -1936,7 +1944,6 @@ int main(int argc, char**argv)
 			//draw player
 			if( (pl.exists && pl.hurt_time<=0) || (pl.exists && pl.hurt_time && rand()%2==0) ) //check if exists (and flicker if hurt)
 				BlitAlpha(screen,spr_pl[pl_dir*2+(pl_anim/(MAXANIM/2))*on_ground],(int)(pl.x)+8,(int)(pl.y)+8+cam_y,0,0,16,16,1.0); //draw player
-			Print(screen, 120, 110, (Pixel){.r=0xff, .g=0xff, .b=0xff}, "words");
 
 			//draw recording status
 			#ifdef RECORDER
