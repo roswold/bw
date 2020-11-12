@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -141,8 +142,25 @@ typedef struct Gfx
 	SDL_Renderer*ren;
 	SDL_Surface*sur;
 	SDL_Texture*tex;
+	TTF_Font*font;
 	Pixel*pix;
 } Gfx;
+
+void FreeGfx(Gfx**gfx,int n)
+{
+	for(int i=0;i<n;++i)
+		if(gfx[i])
+		{
+			if(gfx[i]->tex)
+				free(gfx[i]->tex);
+			free(gfx[i]);
+		}
+}
+
+void Print(Gfx*scr,int x,int y,Pixel col,char*str)
+{
+	//TTF_RenderText_Blended(scr->font,str,(SDL_Color){.r=col.r,.g=col.g,.b=col.b});
+}
 
 void Fill(Gfx*scr,int x,int y,int w,int h,Pixel bgc)
 {
@@ -185,13 +203,16 @@ void Update(Gfx*scr)
 
 void Free(Gfx*scr)
 {
-	puts("quitting");
+	puts("freeing resources");
 	if(scr->win)
 		SDL_DestroyWindow(scr->win);
 	//if(scr->ren)
 		//SDL_DestroyRenderer(scr->ren);
 	if(scr)
 		free(scr);
+
+	Mix_Quit();
+	TTF_Quit();
 	SDL_Quit();
 }
 
@@ -934,21 +955,24 @@ void DrawSineTitle(Gfx *scr, Gfx *spr,int xpos,int ypos)
 	}
 }
 
-int main(int argc, char **argv)
+// Entry point
+int main(int argc, char**argv)
 {
+	Gfx *screen=NULL;
+	struct Map map;
+	struct Ent pl;
+
 	srand(time(NULL));
 
-	struct Map map;
+	// Randomize map
 	// bg_color=RGB(0x00,0x00,0x00);
 	// RandomMap(&map);
 
-	#ifdef EDITOR
-	#endif //EDITOR
-
-	struct Ent pl;
+	// Create player
 	CreateEnt(&pl,16,48,0);
 	pl.hp=MAXHP;
 
+	// Recording for title screen
 	current_recording=rand()%TOTALRECORDINGS; //go to random recording for intro!
 
 	//which enemies use which movement functions:
@@ -967,12 +991,16 @@ int main(int argc, char **argv)
 	// LoadGame(&pl,&map,"data/profile.dat");
 	#endif //EDITOR
 
-	#ifdef SOUND
+	// Initialize SDL
 	SDL_Init(SDL_INIT_EVERYTHING);
+	TTF_Init();
+
+	// Initialize SDL audio
+	#ifdef SOUND
 	Mix_Init(MIX_INIT_MP3|MIX_INIT_OGG);
 	Mix_OpenAudio(44100,MIX_DEFAULT_FORMAT,2,1024);
 
-	//open all music files
+	// Open all music files
 	Mix_Music*songs[5];
 	songs[0]=Mix_LoadMUS("data/sfx/scatterbrain.mp3");
 	songs[1]=Mix_LoadMUS("data/sfx/enthusra.mp3");
@@ -982,7 +1010,6 @@ int main(int argc, char **argv)
 	for(int i=0;i<5;++i)
 		if(!songs[i])
 			printf("error: song: '%s'\n",Mix_GetError());
-
 
 	if(title)
 		Mix_PlayMusic(songs[4],-1);
@@ -995,13 +1022,14 @@ int main(int argc, char **argv)
 	}
 	#endif //SOUND
 
+	// Load sprites
 	Gfx *spr_tile[6]={0}; //array of sprite pointers to load
 	Gfx *spr_shot[4]={0};
 	Gfx *spr_en[20]={0}; //enemy sprites
 	Gfx *spr_pl[4]={0};
 	Gfx *spr_hp[2]={0};
 
-	Gfx *screen = Window(320, 240, "ld48hr40 The Beforlorne Wander", 0);
+	screen = Window(320, 240, "ld48hr40 The Beforlorne Wander", 0);
 	spr_pl[0]=LoadImage("data/gfx/plL.png",screen->ren);
 	spr_pl[1]=LoadImage("data/gfx/plL2.png",screen->ren);
 	spr_pl[2]=LoadImage("data/gfx/plR.png",screen->ren);
@@ -1030,11 +1058,15 @@ int main(int argc, char **argv)
 	Gfx *spr_tb=LoadImage("data/gfx/txtbox.png",screen->ren);
 	Gfx *spr_title=LoadImage("data/gfx/title.png",screen->ren);
 
+	// Load font
+	puts("loading font");
+	//screen->font=TTF_OpenFont("DejaVuSansMono.ttf",10);
+
 	// Clear screen initially
 	Clear(screen,(Pixel){0});
 	Update(screen);
 
-	//start intro playback
+	// Start intro playback
 	{
 		char str[128];
 		sprintf(str,"data/rec/p%i.dat",current_recording);
@@ -1048,17 +1080,17 @@ int main(int argc, char **argv)
 		srand(RECORDRNGVAL);
 	}
 
-
+	// Main loop
 	while (!Closed(screen))
 	{
 		CheckKeys();
 
+		// Global -----
 		if(KeyDown(screen,TK_ESCAPE)) //go back to title
 		{
 			puts("pressed ESCAPE");
 			if(!title)
 			{
-				// exit(0);
 				title=true;
 				playing=true;
 				drawing=true;
@@ -1082,14 +1114,12 @@ int main(int argc, char **argv)
 
 				Mix_PlayMusic(songs[4],-1);
 			}
-			else //exit game
-			{
-				exit(0);
-			}
+			else //quit game
+				goto quit;
 		}
 
 
-		//title screen---
+		// Title screen---
 		if(title)
 		{
 			//input (title)-----
@@ -1130,20 +1160,12 @@ int main(int argc, char **argv)
 				#endif //SOUND
 			}
 
-			//render (title)-----
-			// Clear(screen, bg_color);
-			//SDL_RenderClear(screen);
-
-			// Print(screen, tfont, 140, 120, RGB(0xff, 0xff, 0xff), "The Beforlorne Wander\nZ to Start New\nC to Continue Last");
-			// Print(screen, tfont, 250, 220, RGB(0xff, 0xff, 0xcc), "pvtroswold");
-
-			// Update(screen); //done in  window while loop
-
-
-
+			Print(screen, 140, 120, (Pixel){.r=0xff, .g=0xff, .b=0xff}, "The Beforlorne Wander\nZ to Start New\nC to Continue Last");
+			Print(screen, 250, 220, (Pixel){.r=0xff, .g=0xff, .b=0xcc}, "pvtroswold");
 		}
 
-		if(playing) //playing the game
+		// Playing the game -----
+		if(playing)
 		{
 			//input-----
 			// if(KeyDown(screen,SDL_SCANCODE_R)) Reset(&pl,&map,songs);
@@ -1764,6 +1786,7 @@ int main(int argc, char **argv)
 			}
 		}
 
+		// Dialog -----
 		if(dialogue)
 		{
 			if(playtheding)
@@ -1771,12 +1794,14 @@ int main(int argc, char **argv)
 				PlaySound("data/sfx/yaysound.wav",NULL,SND_ASYNC);
 				playtheding=false;
 			}
+
 			if(KeyDown(screen,TK_c)) //user progresses text/ends dialogue
 			{
-					dialogue=false;
-					playing=true;
-					drawing=true;
-					title=false;
+				dialogue=false;
+				playing=true;
+				drawing=true;
+				title=false;
+
 				if(!gameover)
 				{
 					#ifdef SOUND
@@ -1785,6 +1810,7 @@ int main(int argc, char **argv)
 					if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
 					#endif //SOUND
 				}
+
 				if(gameover)
 				{
 					Reset(&pl,&map,songs);
@@ -1821,13 +1847,12 @@ int main(int argc, char **argv)
 			if(!dialogue_rendered)
 			{
 				BlitAlpha(screen,spr_tb,0,140,0,0,320,100,1.0);
-				//Print(screen,tfont,40,150,RGB(0xaa,0xaa,0xaa),dialogue_text);
+				Print(screen,40,150,(Pixel){.r=0xaa,.g=0xaa,.b=0xaa},dialogue_text);
 				dialogue_rendered=true;
 			}
 		}
 
-
-		//progress recording frames
+		// Progress recording frames -----
 		if(recording || record_playback)
 		{
 			if(current_frame<RECORDLEN)
@@ -1859,8 +1884,8 @@ int main(int argc, char **argv)
 			}
 		}
 
+		// Draw -----
 		if(drawing)
-		// if(true)
 		{
 			//render-----
 			Clear(screen, bg_color);
@@ -1897,14 +1922,14 @@ int main(int argc, char **argv)
 			//draw player
 			if( (pl.exists && pl.hurt_time<=0) || (pl.exists && pl.hurt_time && rand()%2==0) ) //check if exists (and flicker if hurt)
 				BlitAlpha(screen,spr_pl[pl_dir*2+(pl_anim/(MAXANIM/2))*on_ground],(int)(pl.x)+8,(int)(pl.y)+8+cam_y,0,0,16,16,1.0); //draw player
-			// Print(screen, tfont, 120, 110, RGB(0xff, 0xff, 0xff), "words");
+			Print(screen, 120, 110, (Pixel){.r=0xff, .g=0xff, .b=0xff}, "words");
 
 			//draw recording status
 			#ifdef RECORDER
 			{
 				char str[128];
 				sprintf(str,"rec(%c):%i/%i",recording?'y':'n',current_frame,RECORDLEN);
-				Print(screen,tfont,150,0,RGB(0xff,recording?0x00:0xff,recording?0x00:0xff),str);
+				Print(screen,150,0,(Pixel){.r=0xff,.g=(recording?0x00:0xff),.b=(recording?0x00:0xff)},str);
 			}
 			#endif //RECORDER
 
@@ -1919,7 +1944,7 @@ int main(int argc, char **argv)
 				for(i=0;i<MAXHP;i++)
 					if(pl.hp>i)
 						str[i+4]='|';*/
-				//Print(screen,tfont,50,0,RGB(0xff,0x00,0x61),"hp:");
+				Print(screen,50,0,(Pixel){.r=0xff,.g=0x00,.b=0x61},"hp:");
 				int i;
 				for(i=0;i<MAXHP;i++)
 					BlitAlpha(screen,spr_hp[!(pl.hp>i)],70+i*8+i+1,0,0,0,8,8,1.0); //draw status of hp at each unit
@@ -1935,8 +1960,8 @@ int main(int argc, char **argv)
 				//DrawSineTitle(screen,spr_title,140+title_xoff,62);
 				//DrawSineTitle(screen,spr_title,140+title_xoff+320,60);
 
-				//Print(screen, tfont, 140, 130, RGB(0xff, 0xff, 0xff), "Z to Start New\nC to Continue Last");
-				//Print(screen, tfont, 250, 220, RGB(0xff, 0xff, 0xcc), "pvtroswold");
+				Print(screen, 140, 130, (Pixel){.r=0xff, .g=0xff, .b=0xff}, "Z to Start New\nC to Continue Last");
+				Print(screen, 250, 220, (Pixel){.r=0xff, .g=0xff, .b=0xcc}, "pvtroswold");
 			}
 
 			//draw editor things
@@ -1944,7 +1969,7 @@ int main(int argc, char **argv)
 				// BlitAlpha(screen,spr_tile[0],(int)((pl.x+16)/16)*16,(int)((pl.y+16)/16)*16,0,0,16,16,1.0); //where is player
 				char str[512];
 				sprintf(str,"t:%i\nmap:%i\nreg:%i",edittype,current_map,current_region);
-				Print(screen, tfont, 0,0, RGB(0xff, 0xff, 0xff), str);
+				Print(screen, 0,0, (Pixel){.r=0xff, .g=0xff, .b=0xff}, str);
 				if(cursx>0 && cursy>0) //don't divide by zero!
 					BlitAlpha(screen,spr_tile[0],(cursx/16)*16,(cursy/16)*16,0,0,16,16,1.0); //draw editor cursor
 			#endif //EDITOR
@@ -1957,42 +1982,13 @@ int main(int argc, char **argv)
 		usleep(16000);
 	}
 
-	for(int i=0;i<6;++i)
-		if(spr_tile[i])
-		{
-			if(spr_tile[i]->tex)
-				free(spr_tile[i]->tex);
-			free(spr_tile[i]);
-		}
-	for(int i=0;i<4;++i)
-		if(spr_shot[i])
-		{
-			if(spr_shot[i]->tex)
-				free(spr_shot[i]->tex);
-			free(spr_shot[i]);
-		}
-	for(int i=0;i<20;++i)
-		if(spr_en[i])
-		{
-			if(spr_en[i]->tex)
-				free(spr_en[i]->tex);
-			free(spr_en[i]);
-		}
-	for(int i=0;i<4;++i)
-		if(spr_pl[i])
-		{
-			if(spr_pl[i]->tex)
-				free(spr_pl[i]->tex);
-			free(spr_pl[i]);
-		}
-	for(int i=0;i<2;++i)
-		if(spr_hp[i])
-		{
-			if(spr_hp[i]->tex)
-				free(spr_hp[i]->tex);
-			free(spr_hp[i]);
-		}
-
+quit:
+	// Cleanup, quit
 	puts("bye");
+	FreeGfx(spr_tile,6);
+	FreeGfx(spr_shot,4);
+	FreeGfx(spr_en,20);
+	FreeGfx(spr_pl,4);
+	FreeGfx(spr_hp,2);
 	Free(screen);
 }
