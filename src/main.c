@@ -114,8 +114,8 @@ int current_recording=0;
 int cursx,cursy,curs_buttons,curs_last_pos=0; //for storing cursor x and y positions and mouse buttons
 int edittype=2; //what to create
 
-uint8_t* kb_state;
-uint8_t kb_state_old[128]; // store last frame's info for KeyDown vs KeyHeld
+uint8_t kb_state[1024]={0};
+uint8_t kb_state_old[1024]={0}; // store last frame's info for KeyDown vs KeyHeld
 
 
 struct Map
@@ -125,7 +125,7 @@ struct Map
 
 void SetMusic();
 
-#define mciSendString(a,b,c,d)
+#define mciSendString(cmd,file)
 typedef union TPixel
 {
 	uint8_t a;
@@ -154,11 +154,13 @@ void tigrFill(Tigr*scr,int x,int y,int w,int h,TPixel bgc)
 
 void tigrCheckKeys(void)
 {
+	static uint8_t*kb;
+
 	SDL_PumpEvents();
-	//memcpy(kb_state_old,kb_state,1);
-	for(int i=0;i<1;++i);
-		//kb_state_old[i]=kb_state[i];
-	kb_state=(uint8_t*)SDL_GetKeyboardState(NULL);
+	kb=(uint8_t*)SDL_GetKeyboardState(NULL);
+
+	memcpy(kb_state_old,kb_state,1024);
+	memcpy(kb_state,kb,1024);
 }
 
 void tigrUpdate(Tigr*scr)
@@ -247,7 +249,10 @@ int tigrClosed(Tigr*t)
 uint8_t tigrKeyDown(Tigr*t,uint32_t k)
 {
 	// Return non-zero if key is depressed now
-	return kb_state[k];
+	uint8_t v=kb_state[k]&&(!kb_state_old[k]);
+	if(v)
+		kb_state_old[k]=1;
+	return v;
 }
 
 uint8_t tigrKeyHeld(Tigr*t,uint32_t k)
@@ -845,9 +850,9 @@ void Reset(struct Ent *pl,struct Map *map)
 		SetMusic();
 	}
 
-	if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-	if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-	if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
+	if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+	if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+	if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
 	#endif //SOUND
 	printf("reset complete\n");
 }
@@ -936,35 +941,35 @@ void SetMusic()
 {
 	switch(current_region)
 	{
-		case 2: mciSendString("stop \"data/sfx/enthusra.mp3\"",NULL,0,NULL); //area 2
-				mciSendString("stop \"data/sfx/upsanddowns.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/scatterbrain.mp3\"",NULL,0,NULL);
-				mciSendString("play \"data/sfx/forward.mp3\" repeat",NULL,0,NULL);
+		case 2: mciSendString("stop","data/sfx/enthusra.mp3"); //area 2
+				mciSendString("stop","data/sfx/upsanddowns.mp3");
+				mciSendString("stop","data/sfx/beatem.mp3");
+				mciSendString("stop","data/sfx/scatterbrain.mp3");
+				mciSendString("play","data/sfx/forward.mp3");
 				current_song_fname="data/sfx/forward.mp3"; break;
-		case 3: mciSendString("stop \"data/sfx/enthusra.mp3\"",NULL,0,NULL); //area 3
-				mciSendString("stop \"data/sfx/upsanddowns.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/forward.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/scatterbrain.mp3\"",NULL,0,NULL);
-				mciSendString("play \"data/sfx/beatem.mp3\" repeat",NULL,0,NULL);
+		case 3: mciSendString("stop","data/sfx/enthusra.mp3"); //area 3
+				mciSendString("stop","data/sfx/upsanddowns.mp3");
+				mciSendString("stop","data/sfx/forward.mp3");
+				mciSendString("stop","data/sfx/scatterbrain.mp3");
+				mciSendString("play","data/sfx/beatem.mp3");
 				current_song_fname="data/sfx/beatem.mp3"; break;
-		case 4: mciSendString("stop \"data/sfx/forward.mp3\"",NULL,0,NULL); //area 4
-				mciSendString("stop \"data/sfx/upsanddowns.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/enthusra.mp3\"",NULL,0,NULL);
-				mciSendString("play \"data/sfx/scatterbrain.mp3\" repeat",NULL,0,NULL);
+		case 4: mciSendString("stop","data/sfx/forward.mp3"); //area 4
+				mciSendString("stop","data/sfx/upsanddowns.mp3");
+				mciSendString("stop","data/sfx/beatem.mp3");
+				mciSendString("stop","data/sfx/enthusra.mp3");
+				mciSendString("play","data/sfx/scatterbrain.mp3");
 				current_song_fname="data/sfx/scatterbrain.mp3"; break;
-		case 5: mciSendString("stop \"data/sfx/forward.mp3\"",NULL,0,NULL); //area 5
-				mciSendString("stop \"data/sfx/scatterbrain.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/enthusra.mp3\"",NULL,0,NULL);
-				mciSendString("play \"data/sfx/upsanddowns.mp3\" repeat",NULL,0,NULL);
+		case 5: mciSendString("stop","data/sfx/forward.mp3"); //area 5
+				mciSendString("stop","data/sfx/scatterbrain.mp3");
+				mciSendString("stop","data/sfx/beatem.mp3");
+				mciSendString("stop","data/sfx/enthusra.mp3");
+				mciSendString("play","data/sfx/upsanddowns.mp3");
 				current_song_fname="data/sfx/upsanddowns.mp3"; break;
-		default: mciSendString("stop \"data/sfx/forward.mp3\"",NULL,0,NULL); //area 1
-				mciSendString("stop \"data/sfx/upsanddowns.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/scatterbrain.mp3\"",NULL,0,NULL);
-				mciSendString("play \"data/sfx/enthusra.mp3\" repeat",NULL,0,NULL);
+		default: mciSendString("stop","data/sfx/forward.mp3"); //area 1
+				mciSendString("stop","data/sfx/upsanddowns.mp3");
+				mciSendString("stop","data/sfx/beatem.mp3");
+				mciSendString("stop","data/sfx/scatterbrain.mp3");
+				mciSendString("play","data/sfx/enthusra.mp3");
 				current_song_fname="data/sfx/enthusra.mp3"; break;
 	}
 }
@@ -1007,23 +1012,23 @@ int main(int argc, char **argv)
 
 	#ifdef SOUND
 	//open all music files
-	mciSendString("open \"data/sfx/forward.mp3\"",NULL,0,NULL);
-	mciSendString("open \"data/sfx/enthusra.mp3\"",NULL,0,NULL);
-	// mciSendString("open \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-	// mciSendString("open \"data/sfx/upsanddowns.mp3\"",NULL,0,NULL);
-	mciSendString("open \"data/sfx/scatterbrain.mp3\"",NULL,0,NULL);
+	mciSendString("open","data/sfx/forward.mp3");
+	mciSendString("open","data/sfx/enthusra.mp3");
+	// mciSendString("open","data/sfx/beatem.mp3");
+	// mciSendString("open","data/sfx/upsanddowns.mp3");
+	mciSendString("open","data/sfx/scatterbrain.mp3");
 
 	if(title)
 	{
-		mciSendString("play \"data/sfx/upsanddowns.mp3\" repeat",NULL,0,NULL);
+		mciSendString("play","data/sfx/upsanddowns.mp3");
 		current_song_fname="data/sfx/upsanddowns.mp3";
 	}
 	else
 	{
 		SetMusic();
-		if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-		if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-		if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
+		if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+		if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+		if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
 	}
 	#endif //SOUND
 
@@ -1084,6 +1089,7 @@ int main(int argc, char **argv)
 	{
 		//tigrClear(screen,(TPixel){0});
 		tigrCheckKeys();
+
 		if(tigrKeyDown(screen,TK_ESCAPE)) //go back to title
 		{
 			puts("pressed ESCAPE");
@@ -1106,12 +1112,12 @@ int main(int argc, char **argv)
 				srand(RECORDRNGVAL);
 
 				//stop everything and play title song
-				mciSendString("stop \"data/sfx/enthusra.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/forward.mp3\"",NULL,0,NULL);
-				mciSendString("stop \"data/sfx/scatterbrain.mp3\"",NULL,0,NULL);
+				mciSendString("stop","data/sfx/enthusra.mp3");
+				mciSendString("stop","data/sfx/beatem.mp3");
+				mciSendString("stop","data/sfx/forward.mp3");
+				mciSendString("stop","data/sfx/scatterbrain.mp3");
 
-				mciSendString("play \"data/sfx/upsanddowns.mp3\" repeat",NULL,0,NULL);
+				mciSendString("play","data/sfx/upsanddowns.mp3");
 				current_song_fname="data/sfx/upsanddowns.mp3";
 			}
 			else //exit game
@@ -1156,9 +1162,9 @@ int main(int argc, char **argv)
 			{
 				#ifdef SOUND
 				SetMusic();
-				if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-				if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-				if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
+				if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+				if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+				if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
 				#endif //SOUND
 			}
 
@@ -1189,7 +1195,7 @@ int main(int argc, char **argv)
 					#ifdef SOUND
 					char str[512];
 					sprintf(str,"pause %s",current_song_fname);
-					mciSendString(str,NULL,0,NULL);
+					mciSendString(str,"file");
 					#endif //SOUND
 					sprintf(dialogue_text,"press C to continue");
 					playing=false;
@@ -1499,9 +1505,9 @@ int main(int argc, char **argv)
 						SetMusic();
 					}
 
-					if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-					if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-					if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
+					if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+					if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+					if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
 					if( (current_map==8 && thirdbossdead==0) || (current_map==217 && thirdbossdead<2) )
 						realthirdboss=2; //have to kill both 'twins'
 
@@ -1572,7 +1578,7 @@ int main(int argc, char **argv)
 				#ifdef SOUND
 				char str[512];
 				sprintf(str,"stop %s",current_song_fname);
-				mciSendString(str,NULL,0,NULL);
+				mciSendString(str,"file");
 				#endif //SOUND
 
 				drawing=false;
@@ -1661,10 +1667,10 @@ int main(int argc, char **argv)
 										#ifdef SOUND
 										char str[512];
 										sprintf(str,"pause %s",current_song_fname);
-										mciSendString(str,NULL,0,NULL);
+										mciSendString(str,"file");
 										#endif //SOUND
 										sprintf(dialogue_text,"Game is saved!\nHP restored!\nPress C to continue");
-										playing=false;
+										//playing=false;
 										drawing=false;
 										dialogue=true;
 										pl.hp=MAXHP;
@@ -1686,7 +1692,7 @@ int main(int argc, char **argv)
 										#ifdef SOUND
 										char str[512];
 										sprintf(str,"pause %s",current_song_fname); //stop the music. it will reload on OpenMap
-										mciSendString(str,NULL,0,NULL);
+										mciSendString(str,"file");
 										#endif //SOUND
 
 										if(current_map==204) //message after original fight
@@ -1728,7 +1734,7 @@ int main(int argc, char **argv)
 										#ifdef SOUND
 										char str[512];
 										sprintf(str,"pause %s",current_song_fname); //stop the music. it will reload on OpenMap
-										mciSendString(str,NULL,0,NULL);
+										mciSendString(str,"file");
 										#endif //SOUND
 
 										if(current_map==403) //message after original fight
@@ -1769,7 +1775,7 @@ int main(int argc, char **argv)
 										#ifdef SOUND
 										char str[512];
 										sprintf(str,"pause %s",current_song_fname); //stop the music. it will reload on OpenMap
-										mciSendString(str,NULL,0,NULL);
+										mciSendString(str,"file");
 										#endif //SOUND
 
 										if(current_map==8) //message after original fight
@@ -1845,10 +1851,10 @@ int main(int argc, char **argv)
 					#ifdef SOUND
 					char str[512];
 					sprintf(str,"play %s repeat",current_song_fname);
-					mciSendString(str,NULL,0,NULL);
-						if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-						if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-						if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
+					mciSendString(str,"file");
+						if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+						if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+						if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
 					#endif //SOUND
 				}
 				if(gameover)
@@ -1870,14 +1876,14 @@ int main(int argc, char **argv)
 						SetMusic();
 					}
 
-					if(current_map==204 && firstbossdead) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-					if(current_map==403 && secondbossdead) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
-					if(current_map==8   && thirdbossdead) mciSendString("stop \"data/sfx/beatem.mp3\"",NULL,0,NULL);
+					if(current_map==204 && firstbossdead) mciSendString("stop","data/sfx/beatem.mp3");
+					if(current_map==403 && secondbossdead) mciSendString("stop","data/sfx/beatem.mp3");
+					if(current_map==8   && thirdbossdead) mciSendString("stop","data/sfx/beatem.mp3");
 
 					#endif //SOUND
 
 					// #ifdef SOUND
-					// mciSendString("play \"data/sfx/upsanddowns.mp3\" repeat",NULL,0,NULL);
+					// mciSendString("play","data/sfx/upsanddowns.mp3");
 					// current_song_fname="data/sfx/upsanddowns.mp3";
 					// #endif //SOUND
 				}
