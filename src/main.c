@@ -281,10 +281,7 @@ uint8_t KeyHeld(Gfx*t,uint32_t k)
 	return kb_state[k];
 }
 
-void PlaySound(char*fn,void*v,uint32_t flags)
-{
-	// Play sound
-}
+#define PlaySound(x) Mix_PlayChannel(-1,x,0)
 
 void PlaySong(Mix_Music**songs)
 {
@@ -1008,8 +1005,19 @@ int main(int argc, char**argv)
 	Mix_Init(MIX_INIT_MP3|MIX_INIT_OGG);
 	Mix_OpenAudio(44100,MIX_DEFAULT_FORMAT,2,1024);
 
+	// Open sound effects
+	Mix_Chunk*sounds[10]={0};
+	sounds[0]=Mix_LoadWAV("data/sfx/shoot.wav");
+	sounds[1]=Mix_LoadWAV("data/sfx/yaysound.wav");
+	sounds[2]=Mix_LoadWAV("data/sfx/feet.wav");
+	sounds[3]=Mix_LoadWAV("data/sfx/meow1.wav");
+	sounds[4]=Mix_LoadWAV("data/sfx/meow2.wav");
+	sounds[5]=Mix_LoadWAV("data/sfx/themow1.wav");
+	sounds[6]=Mix_LoadWAV("data/sfx/themow2.wav");
+	sounds[7]=Mix_LoadWAV("data/sfx/hurt.wav");
+
 	// Open all music files
-	Mix_Music*songs[5];
+	Mix_Music*songs[5]={0};
 	songs[0]=Mix_LoadMUS("data/sfx/upsanddowns.mp3");
 	songs[1]=Mix_LoadMUS("data/sfx/enthusra.mp3");
 	songs[2]=Mix_LoadMUS("data/sfx/forward.mp3");
@@ -1179,7 +1187,7 @@ int main(int argc, char**argv)
 			{
 				if(KeyDown(screen,TK_a) && !recording && !record_playback && !title)
 				{
-					// PlaySound("data/sfx/yaysound.wav",NULL,SND_ASYNC);
+					PlaySound(sounds[1]);
 					#ifdef SOUND
 					Mix_PauseMusic();
 					#endif //SOUND
@@ -1241,7 +1249,7 @@ int main(int argc, char**argv)
 				if( (!record_playback && !title && KeyDown(screen,TK_x)) || (record_playback && recorded_input[current_frame]&IR_XD) ) //shoot bullet
 				{
 					Shoot(&pl,shot_type);
-					PlaySound("data/sfx/shoot.wav",NULL,SND_ASYNC);
+					PlaySound(sounds[0]);
 					// printf("TK_x:%x\n",IR_XD);
 					if(recording) recorded_input[current_frame]|=IR_XD;
 				}
@@ -1541,7 +1549,8 @@ int main(int argc, char**argv)
 							if(djump) can_djump=true;
 							if(!on_ground)
 							{
-								if(pl.vsp>=TERMVEL) PlaySound("data/sfx/feet.wav",NULL,SND_ASYNC);
+								if(pl.vsp>=TERMVEL)PlaySound(sounds[2]);
+									//PlaySound("data/sfx/feet.wav",NULL,SND_ASYNC);
 								on_ground=true;
 							}
 						}
@@ -1582,8 +1591,8 @@ int main(int argc, char**argv)
 						pl.hp--;
 						pl.hsp+=(pl.x-en[i].x)*fabs(1.0/(pl.x-en[i].x))*2.0; //knockback
 						pl.vsp+=(pl.y-en[i].y)*fabs(1.0/(pl.y-en[i].y))*2.0;
-						if(rand()%2==0) PlaySound("data/sfx/meow1.wav",NULL,SND_ASYNC); //two variations (!)
-						else			PlaySound("data/sfx/meow2.wav",NULL,SND_ASYNC);
+						if(rand()%2==0) PlaySound(sounds[3]);
+						else			PlaySound(sounds[4]);
 					}
 
 
@@ -1619,8 +1628,8 @@ int main(int argc, char**argv)
 						//printf("dmg:%i (pl hp:%i)\n",shots[i].type+1,pl.hp);
 						if(pl.hp<=0 && !record_playback)
 						pl.exists=false;
-						if(rand()%2==0) PlaySound("data/sfx/meow1.wav",NULL,SND_ASYNC);
-						else			PlaySound("data/sfx/meow2.wav",NULL,SND_ASYNC);
+						if(rand()%2==0) PlaySound(sounds[3]);
+						else			PlaySound(sounds[4]);
 					}
 
 					if(shots[i].owner==&pl && pl.exists) //only hit enemies if shot is from player
@@ -1776,11 +1785,11 @@ int main(int argc, char**argv)
 								}
 								if(en[iEn].type==3 || en[iEn].type==4 || en[iEn].type==8) //boss hurt sounds
 								{
-									if(rand()%2==0) PlaySound("data/sfx/themow1.wav",NULL,SND_ASYNC); //two variations (!)
-									else			PlaySound("data/sfx/themow2.wav",NULL,SND_ASYNC);
+									if(rand()%2==0) PlaySound(sounds[5]); //two variations (!)
+									else			PlaySound(sounds[6]);
 								}
 								else
-									PlaySound("data/sfx/hurt.wav",NULL,SND_ASYNC);
+									PlaySound(sounds[7]);
 							}
 						}
 					}
@@ -1793,7 +1802,7 @@ int main(int argc, char**argv)
 		{
 			if(playtheding)
 			{
-				PlaySound("data/sfx/yaysound.wav",NULL,SND_ASYNC);
+				PlaySound(sounds[1]);
 				playtheding=false;
 			}
 
@@ -1985,5 +1994,11 @@ quit:
 	FreeGfx(spr_en,20);
 	FreeGfx(spr_pl,4);
 	FreeGfx(spr_hp,2);
+	for(int i=0;i<5;++i)
+		if(songs[i])
+			Mix_FreeMusic(songs[i]);
+	for(int i=0;i<5;++i)
+		if(sounds[i])
+			Mix_FreeChunk(sounds[i]);
 	Free(screen);
 }
