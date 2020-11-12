@@ -123,33 +123,35 @@ struct Map
 	int tile[MAPMAXTILES];
 };
 
-typedef union TPixel
+// Pixel data
+typedef struct Pixel
 {
-	uint8_t a;
-	uint8_t r;
-	uint8_t g;
 	uint8_t b;
-} TPixel;
-TPixel bg_color;
+	uint8_t g;
+	uint8_t r;
+	uint8_t a;
+} Pixel;
+Pixel bg_color;
 
-typedef struct Tigr
+// Graphics state
+typedef struct Gfx
 {
 	uint32_t w,h;
 	SDL_Window*win;
 	SDL_Renderer*ren;
 	SDL_Surface*sur;
 	SDL_Texture*tex;
-	TPixel*pix;
-} Tigr;
+	Pixel*pix;
+} Gfx;
 
-void tigrFill(Tigr*scr,int x,int y,int w,int h,TPixel bgc)
+void Fill(Gfx*scr,int x,int y,int w,int h,Pixel bgc)
 {
 	SDL_Rect rect={.x=x,.y=y,.w=w,.h=h};
 	SDL_SetRenderDrawColor(scr->ren,bgc.r,bgc.g,bgc.b,bgc.a);
 	SDL_RenderFillRect(scr->ren,&rect);
 }
 
-void tigrCheckKeys(void)
+void CheckKeys(void)
 {
 	static uint8_t*kb;
 
@@ -160,7 +162,7 @@ void tigrCheckKeys(void)
 	memcpy(kb_state,kb,1024);
 }
 
-void tigrUpdate(Tigr*scr)
+void Update(Gfx*scr)
 {
 	SDL_Event e;
 
@@ -181,7 +183,7 @@ void tigrUpdate(Tigr*scr)
 	SDL_RenderPresent(scr->ren);
 }
 
-void tigrFree(Tigr*scr)
+void Free(Gfx*scr)
 {
 	puts("quitting");
 	if(scr->win)
@@ -193,11 +195,11 @@ void tigrFree(Tigr*scr)
 	SDL_Quit();
 }
 
-Tigr*tigrLoadImage(char*fn,SDL_Renderer*r)
+Gfx*LoadImage(char*fn,SDL_Renderer*r)
 {
 	FILE*f=fopen(fn,"r");
-	Tigr*t=malloc(sizeof(Tigr));
-	t->pix=malloc(sizeof(TPixel));
+	Gfx*t=malloc(sizeof(Gfx));
+	t->pix=malloc(sizeof(Pixel));
 	if(!f)return NULL;
 
 	t->sur=IMG_Load(fn);
@@ -221,9 +223,9 @@ Tigr*tigrLoadImage(char*fn,SDL_Renderer*r)
 	return t;
 }
 
-Tigr*tigrWindow(uint32_t w,uint32_t h,char*title,uint32_t flags)
+Gfx*Window(uint32_t w,uint32_t h,char*title,uint32_t flags)
 {
-	Tigr*t=malloc(sizeof(Tigr));
+	Gfx*t=malloc(sizeof(Gfx));
 	t->win=SDL_CreateWindow(title,
 			SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED,
@@ -238,12 +240,12 @@ Tigr*tigrWindow(uint32_t w,uint32_t h,char*title,uint32_t flags)
 	return t;
 }
 
-int tigrClosed(Tigr*t)
+int Closed(Gfx*t)
 {
 	return !(playing||title);
 }
 
-uint8_t tigrKeyDown(Tigr*t,uint32_t k)
+uint8_t KeyDown(Gfx*t,uint32_t k)
 {
 	// Return non-zero if key is depressed now
 	uint8_t v=kb_state[k]&&(!kb_state_old[k]);
@@ -252,7 +254,7 @@ uint8_t tigrKeyDown(Tigr*t,uint32_t k)
 	return v;
 }
 
-uint8_t tigrKeyHeld(Tigr*t,uint32_t k)
+uint8_t KeyHeld(Gfx*t,uint32_t k)
 {
 	// Return non-zero if key is held
 	return kb_state[k];
@@ -263,14 +265,14 @@ void PlaySound(char*fn,void*v,uint32_t flags)
 	// Play sound
 }
 
-void tigrClear(Tigr*scr,TPixel col)
+void Clear(Gfx*scr,Pixel col)
 {
 	SDL_SetRenderDrawColor(scr->ren,col.r,col.g,col.b,col.a);
 	SDL_RenderClear(scr->ren);
 }
 
 
-void tigrBlitAlpha(Tigr*t,Tigr*spr,int x,int y,int w,int h,
+void BlitAlpha(Gfx*t,Gfx*spr,int x,int y,int w,int h,
 		int a,int b,float alpha)
 {
 	if(!t||!spr) return;
@@ -912,7 +914,7 @@ int LoadRec(char *fname)
 	return 0;
 }
 
-void DrawSineTitle(Tigr *scr, Tigr *spr,int xpos,int ypos)
+void DrawSineTitle(Gfx *scr, Gfx *spr,int xpos,int ypos)
 {
 	int x,y;
 	static float find_sin,sin_n;
@@ -937,7 +939,7 @@ int main(int argc, char **argv)
 	srand(time(NULL));
 
 	struct Map map;
-	// bg_color=tigrRGB(0x00,0x00,0x00);
+	// bg_color=RGB(0x00,0x00,0x00);
 	// RandomMap(&map);
 
 	#ifdef EDITOR
@@ -993,43 +995,44 @@ int main(int argc, char **argv)
 	}
 	#endif //SOUND
 
-	Tigr *spr_tile[6]={0}; //array of sprite pointers to load
-	Tigr *spr_shot[4]={0};
-	Tigr *spr_en[20]={0}; //enemy sprites
-	Tigr *spr_pl[4]={0};
-	Tigr *spr_hp[2]={0};
+	Gfx *spr_tile[6]={0}; //array of sprite pointers to load
+	Gfx *spr_shot[4]={0};
+	Gfx *spr_en[20]={0}; //enemy sprites
+	Gfx *spr_pl[4]={0};
+	Gfx *spr_hp[2]={0};
 
-	Tigr *screen = tigrWindow(320, 240, "ld48hr40 The Beforlorne Wander", 0);
-	spr_pl[0]=tigrLoadImage("data/gfx/plL.png",screen->ren);
-	spr_pl[1]=tigrLoadImage("data/gfx/plL2.png",screen->ren);
-	spr_pl[2]=tigrLoadImage("data/gfx/plR.png",screen->ren);
-	spr_pl[3]=tigrLoadImage("data/gfx/plR2.png",screen->ren);
-	spr_shot[0]=tigrLoadImage("data/gfx/shot1.png",screen->ren);
-	spr_shot[1]=tigrLoadImage("data/gfx/shot2.png",screen->ren);
-	spr_shot[2]=tigrLoadImage("data/gfx/shot3.png",screen->ren);
-	spr_shot[3]=tigrLoadImage("data/gfx/shot4.png",screen->ren);
-	spr_tile[0]=tigrLoadImage("data/gfx/tile0.png",screen->ren); //does not correspond with tile value 0, is only for editi,screen->renng
-	spr_tile[1]=tigrLoadImage("data/gfx/tile1.png",screen->ren);
-	spr_tile[2]=tigrLoadImage("data/gfx/tile2.png",screen->ren);
-	spr_tile[3]=tigrLoadImage("data/gfx/tile3.png",screen->ren);
-	spr_tile[4]=tigrLoadImage("data/gfx/tile4.png",screen->ren);
-	spr_tile[5]=tigrLoadImage("data/gfx/tile5.png",screen->ren);
-	spr_en[0]=tigrLoadImage("data/gfx/en1.png",screen->ren);
-	spr_en[1]=tigrLoadImage("data/gfx/en2.png",screen->ren);
-	spr_en[2]=tigrLoadImage("data/gfx/en3.png",screen->ren);
-	spr_en[3]=tigrLoadImage("data/gfx/en4.png",screen->ren);
-	spr_en[4]=tigrLoadImage("data/gfx/en5.png",screen->ren);
-	spr_en[5]=tigrLoadImage("data/gfx/en6.png",screen->ren);
-	spr_en[6]=tigrLoadImage("data/gfx/en7.png",screen->ren);
-	spr_en[7]=tigrLoadImage("data/gfx/en8.png",screen->ren);
-	spr_en[8]=tigrLoadImage("data/gfx/en9.png",screen->ren);
-	spr_hp[0]=tigrLoadImage("data/gfx/hp.png",screen->ren);
-	spr_hp[1]=tigrLoadImage("data/gfx/nohp.png",screen->ren);
-	Tigr *spr_tb=tigrLoadImage("data/gfx/txtbox.png",screen->ren);
-	Tigr *spr_title=tigrLoadImage("data/gfx/title.png",screen->ren);
+	Gfx *screen = Window(320, 240, "ld48hr40 The Beforlorne Wander", 0);
+	spr_pl[0]=LoadImage("data/gfx/plL.png",screen->ren);
+	spr_pl[1]=LoadImage("data/gfx/plL2.png",screen->ren);
+	spr_pl[2]=LoadImage("data/gfx/plR.png",screen->ren);
+	spr_pl[3]=LoadImage("data/gfx/plR2.png",screen->ren);
+	spr_shot[0]=LoadImage("data/gfx/shot1.png",screen->ren);
+	spr_shot[1]=LoadImage("data/gfx/shot2.png",screen->ren);
+	spr_shot[2]=LoadImage("data/gfx/shot3.png",screen->ren);
+	spr_shot[3]=LoadImage("data/gfx/shot4.png",screen->ren);
+	spr_tile[0]=LoadImage("data/gfx/tile0.png",screen->ren); //does not correspond with tile value 0, is only for editi,screen->renng
+	spr_tile[1]=LoadImage("data/gfx/tile1.png",screen->ren);
+	spr_tile[2]=LoadImage("data/gfx/tile2.png",screen->ren);
+	spr_tile[3]=LoadImage("data/gfx/tile3.png",screen->ren);
+	spr_tile[4]=LoadImage("data/gfx/tile4.png",screen->ren);
+	spr_tile[5]=LoadImage("data/gfx/tile5.png",screen->ren);
+	spr_en[0]=LoadImage("data/gfx/en1.png",screen->ren);
+	spr_en[1]=LoadImage("data/gfx/en2.png",screen->ren);
+	spr_en[2]=LoadImage("data/gfx/en3.png",screen->ren);
+	spr_en[3]=LoadImage("data/gfx/en4.png",screen->ren);
+	spr_en[4]=LoadImage("data/gfx/en5.png",screen->ren);
+	spr_en[5]=LoadImage("data/gfx/en6.png",screen->ren);
+	spr_en[6]=LoadImage("data/gfx/en7.png",screen->ren);
+	spr_en[7]=LoadImage("data/gfx/en8.png",screen->ren);
+	spr_en[8]=LoadImage("data/gfx/en9.png",screen->ren);
+	spr_hp[0]=LoadImage("data/gfx/hp.png",screen->ren);
+	spr_hp[1]=LoadImage("data/gfx/nohp.png",screen->ren);
+	Gfx *spr_tb=LoadImage("data/gfx/txtbox.png",screen->ren);
+	Gfx *spr_title=LoadImage("data/gfx/title.png",screen->ren);
 
-	tigrClear(screen,(TPixel){0});
-	tigrUpdate(screen);
+	// Clear screen initially
+	Clear(screen,(Pixel){0});
+	Update(screen);
 
 	//start intro playback
 	{
@@ -1046,12 +1049,11 @@ int main(int argc, char **argv)
 	}
 
 
-	while (!tigrClosed(screen))
+	while (!Closed(screen))
 	{
-		//tigrClear(screen,(TPixel){0});
-		tigrCheckKeys();
+		CheckKeys();
 
-		if(tigrKeyDown(screen,TK_ESCAPE)) //go back to title
+		if(KeyDown(screen,TK_ESCAPE)) //go back to title
 		{
 			puts("pressed ESCAPE");
 			if(!title)
@@ -1091,7 +1093,7 @@ int main(int argc, char **argv)
 		if(title)
 		{
 			//input (title)-----
-			if(tigrKeyDown(screen,TK_z)) //new game
+			if(KeyDown(screen,TK_z)) //new game
 			{
 				recording=false;
 				record_playback=false;
@@ -1102,7 +1104,7 @@ int main(int argc, char **argv)
 				Reset(&pl,&map,songs);
 			}
 
-			if(tigrKeyDown(screen,TK_c)) //continue
+			if(KeyDown(screen,TK_c)) //continue
 			{
 				int success;
 				success=!LoadGame(&pl,&map,"data/profile.dat");
@@ -1129,13 +1131,13 @@ int main(int argc, char **argv)
 			}
 
 			//render (title)-----
-			// tigrClear(screen, bg_color);
+			// Clear(screen, bg_color);
 			//SDL_RenderClear(screen);
 
-			// tigrPrint(screen, tfont, 140, 120, tigrRGB(0xff, 0xff, 0xff), "The Beforlorne Wander\nZ to Start New\nC to Continue Last");
-			// tigrPrint(screen, tfont, 250, 220, tigrRGB(0xff, 0xff, 0xcc), "pvtroswold");
+			// Print(screen, tfont, 140, 120, RGB(0xff, 0xff, 0xff), "The Beforlorne Wander\nZ to Start New\nC to Continue Last");
+			// Print(screen, tfont, 250, 220, RGB(0xff, 0xff, 0xcc), "pvtroswold");
 
-			// tigrUpdate(screen); //done in tigr window while loop
+			// Update(screen); //done in  window while loop
 
 
 
@@ -1144,12 +1146,12 @@ int main(int argc, char **argv)
 		if(playing) //playing the game
 		{
 			//input-----
-			// if(tigrKeyDown(screen,SDL_SCANCODE_R)) Reset(&pl,&map,songs);
-			// if(tigrKeyDown(screen,SDL_SCANCODE_E)) LoadGame(&pl,&map,"data/profile.dat");
-			// if(tigrKeyDown(screen,SDL_SCANCODE_W)) OpenMap(&map,"data/maps/map200.dat",200);
+			// if(KeyDown(screen,SDL_SCANCODE_R)) Reset(&pl,&map,songs);
+			// if(KeyDown(screen,SDL_SCANCODE_E)) LoadGame(&pl,&map,"data/profile.dat");
+			// if(KeyDown(screen,SDL_SCANCODE_W)) OpenMap(&map,"data/maps/map200.dat",200);
 			if(pl.exists)
 			{
-				if(tigrKeyDown(screen,TK_a) && !recording && !record_playback && !title)
+				if(KeyDown(screen,TK_a) && !recording && !record_playback && !title)
 				{
 					// PlaySound("data/sfx/yaysound.wav",NULL,SND_ASYNC);
 					#ifdef SOUND
@@ -1161,7 +1163,7 @@ int main(int argc, char **argv)
 					dialogue=true;
 					dialogue_rendered=false;
 				}
-				if( (!record_playback && !title && tigrKeyHeld(screen,TK_RIGHT) && pl.hsp<0.8) || (record_playback && recorded_input[current_frame]&IR_R) ) //!= is logical XOR
+				if( (!record_playback && !title && KeyHeld(screen,TK_RIGHT) && pl.hsp<0.8) || (record_playback && recorded_input[current_frame]&IR_R) ) //!= is logical XOR
 				{
 					pl_anim=(pl_anim+1)%MAXANIM;
 					pl.hsp+=(on_ground)?(1.0*PLSPD):(PLJSPD*PLSPD); //more traction on ground so greater speed
@@ -1170,7 +1172,7 @@ int main(int argc, char **argv)
 					// printf("R:%x\n",IR_R);
 					if(recording) recorded_input[current_frame]|=IR_R;
 				}
-				if( ( (!record_playback && !title && tigrKeyHeld(screen,TK_LEFT)) || (record_playback && recorded_input[current_frame]&IR_L) ) && pl.hsp>-0.8)
+				if( ( (!record_playback && !title && KeyHeld(screen,TK_LEFT)) || (record_playback && recorded_input[current_frame]&IR_L) ) && pl.hsp>-0.8)
 				{
 					pl_anim=(pl_anim+1)%MAXANIM;
 					pl.hsp-=(on_ground)?(1.0*PLSPD):(PLJSPD*PLSPD);
@@ -1180,13 +1182,13 @@ int main(int argc, char **argv)
 					if(recording) recorded_input[current_frame]|=IR_L;
 				}
 				// pl.hdir=0;
-				if( (!record_playback && !title && tigrKeyHeld(screen,TK_DOWN)) || (record_playback && recorded_input[current_frame]&IR_D) )
+				if( (!record_playback && !title && KeyHeld(screen,TK_DOWN)) || (record_playback && recorded_input[current_frame]&IR_D) )
 				{
 					pl.vdir=1;
 					// printf("D:%x\n",IR_D);
 					if(recording) recorded_input[current_frame]|=IR_D;
 				}
-				else if( (!record_playback && !title && tigrKeyHeld(screen,TK_UP)) || (record_playback && recorded_input[current_frame]&IR_U) )
+				else if( (!record_playback && !title && KeyHeld(screen,TK_UP)) || (record_playback && recorded_input[current_frame]&IR_U) )
 				{
 					pl.vdir=-1;
 					// printf("U:%x\n",IR_U);
@@ -1194,7 +1196,7 @@ int main(int argc, char **argv)
 				}
 				else pl.vdir=0; //vdir is zero unless UP/DOWN is (are) held
 
-				if( (!record_playback && !title && tigrKeyDown(screen,TK_z)) || (record_playback && recorded_input[current_frame]&IR_ZD)) //jump button
+				if( (!record_playback && !title && KeyDown(screen,TK_z)) || (record_playback && recorded_input[current_frame]&IR_ZD)) //jump button
 				{
 					if((can_jump || can_djump) /*&& !zdown*/)
 					{
@@ -1207,17 +1209,17 @@ int main(int argc, char **argv)
 				}
 				else if(zdown && on_ground) zdown=false;
 
-				// if(!tigrKeyDown(screen,TK_z) && tigrKeyHeld(screen,TK_z)) //key down, but not starting this frame
+				// if(!KeyDown(screen,TK_z) && KeyHeld(screen,TK_z)) //key down, but not starting this frame
 					// if(recording) recorded_input[current_frame]|=IR_Z;
 
-				if( (!record_playback && !title && tigrKeyDown(screen,TK_x)) || (record_playback && recorded_input[current_frame]&IR_XD) ) //shoot bullet
+				if( (!record_playback && !title && KeyDown(screen,TK_x)) || (record_playback && recorded_input[current_frame]&IR_XD) ) //shoot bullet
 				{
 					Shoot(&pl,shot_type);
 					PlaySound("data/sfx/shoot.wav",NULL,SND_ASYNC);
 					// printf("TK_x:%x\n",IR_XD);
 					if(recording) recorded_input[current_frame]|=IR_XD;
 				}
-				else if(!title && tigrKeyHeld(screen,TK_x))
+				else if(!title && KeyHeld(screen,TK_x))
 					if(recording) recorded_input[current_frame]|=IR_X;
 
 				// pl.hsp*=(on_ground)?(0.75):(0.76); //less horizontal friction if airborne
@@ -1242,17 +1244,17 @@ int main(int argc, char **argv)
 			//recorder options/input
 			#ifdef RECORDER
 				//recording stuff
-				if(tigrKeyDown(screen,SDL_SCANCODE_B))
+				if(KeyDown(screen,SDL_SCANCODE_B))
 				{
 					// SaveGame(&pl,"data/rec/pX.dat");
 					SaveRec("data/rec/recX.dat");
 				}
-				if(tigrKeyDown(screen,SDL_SCANCODE_N))
+				if(KeyDown(screen,SDL_SCANCODE_N))
 				{
 					LoadGame(&pl,&map,"data/rec/pX.dat");
 					LoadRec("data/rec/recX.dat");
 				}
-				if(tigrKeyDown(screen,SDL_SCANCODE_G))
+				if(KeyDown(screen,SDL_SCANCODE_G))
 				{
 					if(!recording)
 					{
@@ -1269,7 +1271,7 @@ int main(int argc, char **argv)
 						//stop recording
 						recording=false;
 				}
-				if(tigrKeyDown(screen,SDL_SCANCODE_H))
+				if(KeyDown(screen,SDL_SCANCODE_H))
 				{
 					recording=false;
 					current_frame=0;
@@ -1281,7 +1283,7 @@ int main(int argc, char **argv)
 			#ifdef EDITOR
 			if(!title) //don't edit in the title/intro
 			{
-				tigrMouse(screen,&cursx,&cursy,&curs_buttons);
+				Mouse(screen,&cursx,&cursy,&curs_buttons);
 				int curs_new_pos=aocoord((cursx/16),(cursy/16),MAPW);
 				if( (curs_buttons & VK_LBUTTON) && (!lmdown || curs_new_pos!=curs_last_pos)) //left mouse button - click to create tile/enemy
 				{
@@ -1352,15 +1354,15 @@ int main(int argc, char **argv)
 				{
 					lmdown=false;
 				}
-				if(tigrKeyHeld(screen,TK_CONTROL))
+				if(KeyHeld(screen,TK_CONTROL))
 				{
-					if(tigrKeyDown(screen,SDL_SCANCODE_S))
+					if(KeyDown(screen,SDL_SCANCODE_S))
 					{
 						char fname[512];
 						sprintf(fname,"data/maps/map%i.dat",current_map);
 						SaveMap(&map,fname);
 					}
-					if(tigrKeyDown(screen,SDL_SCANCODE_O))
+					if(KeyDown(screen,SDL_SCANCODE_O))
 					{
 						char fname[512];
 						sprintf(fname,"data/maps/map%i.dat",current_map);
@@ -1372,29 +1374,29 @@ int main(int argc, char **argv)
 					}
 				}
 				//edit tiles
-				if(tigrKeyDown(screen,'1')) edittype=1;
-				if(tigrKeyDown(screen,'2')) edittype=2;
-				if(tigrKeyDown(screen,'3')) edittype=3;
-				if(tigrKeyDown(screen,'4')) edittype=4;
-				if(tigrKeyDown(screen,'5')) edittype=5;
-				// if(tigrKeyDown(screen,'4')) edittype=4;
+				if(KeyDown(screen,'1')) edittype=1;
+				if(KeyDown(screen,'2')) edittype=2;
+				if(KeyDown(screen,'3')) edittype=3;
+				if(KeyDown(screen,'4')) edittype=4;
+				if(KeyDown(screen,'5')) edittype=5;
+				// if(KeyDown(screen,'4')) edittype=4;
 
 				//edit enemies
-				if(tigrKeyHeld(screen,TK_CONTROL))
+				if(KeyHeld(screen,TK_CONTROL))
 				{
-					if(tigrKeyDown(screen,'1')) edittype=100; //100 series of edittype is reserved for enemies
-					if(tigrKeyDown(screen,'2')) edittype=101;
-					if(tigrKeyDown(screen,'3')) edittype=102;
-					if(tigrKeyDown(screen,'4')) edittype=103;
-					if(tigrKeyDown(screen,'5')) edittype=104;
-					if(tigrKeyDown(screen,'6')) edittype=105; //booox
-					if(tigrKeyDown(screen,'7')) edittype=106; //swoop eye
-					if(tigrKeyDown(screen,'8')) edittype=107; //swoop guard
-					if(tigrKeyDown(screen,'9')) edittype=108; //twin eyes
+					if(KeyDown(screen,'1')) edittype=100; //100 series of edittype is reserved for enemies
+					if(KeyDown(screen,'2')) edittype=101;
+					if(KeyDown(screen,'3')) edittype=102;
+					if(KeyDown(screen,'4')) edittype=103;
+					if(KeyDown(screen,'5')) edittype=104;
+					if(KeyDown(screen,'6')) edittype=105; //booox
+					if(KeyDown(screen,'7')) edittype=106; //swoop eye
+					if(KeyDown(screen,'8')) edittype=107; //swoop guard
+					if(KeyDown(screen,'9')) edittype=108; //twin eyes
 				}
 
 				//SHIFT+Q: delete all enemies at once
-				if(tigrKeyDown(screen,SDL_SCANCODE_Q) && tigrKeyHeld(screen,TK_SHIFT))
+				if(KeyDown(screen,SDL_SCANCODE_Q) && KeyHeld(screen,TK_SHIFT))
 				{
 					int i;
 					for(i=0;i<MAXENS;i++)
@@ -1402,11 +1404,11 @@ int main(int argc, char **argv)
 					printf("deleted all enemies\n");
 				}
 
-				if(tigrKeyDown(screen,SDL_SCANCODE_U)) bg_color=tigrRGB((char)(rand()%0x33),(char)(rand()%0x33),(char)(rand()%0x33)); //random dark color
-				if(tigrKeyDown(screen,SDL_SCANCODE_K)) bg_color=tigrRGB((char)(0x33+(rand()%0xff)),(char)(0x33+(rand()%0xff)),(char)(0x33+(rand()%0xff))); //random light color
-				if(tigrKeyDown(screen,SDL_SCANCODE_J)) bg_color=tigrRGB(0x00,0x00,0x00);
-				if(tigrKeyDown(screen,SDL_SCANCODE_T)) current_region--;
-				if(tigrKeyDown(screen,SDL_SCANCODE_Y)) current_region++;
+				if(KeyDown(screen,SDL_SCANCODE_U)) bg_color=RGB((char)(rand()%0x33),(char)(rand()%0x33),(char)(rand()%0x33)); //random dark color
+				if(KeyDown(screen,SDL_SCANCODE_K)) bg_color=RGB((char)(0x33+(rand()%0xff)),(char)(0x33+(rand()%0xff)),(char)(0x33+(rand()%0xff))); //random light color
+				if(KeyDown(screen,SDL_SCANCODE_J)) bg_color=RGB(0x00,0x00,0x00);
+				if(KeyDown(screen,SDL_SCANCODE_T)) current_region--;
+				if(KeyDown(screen,SDL_SCANCODE_Y)) current_region++;
 
 
 				curs_last_pos=curs_new_pos; //last array offset index value for cursor on screen
@@ -1769,7 +1771,7 @@ int main(int argc, char **argv)
 				PlaySound("data/sfx/yaysound.wav",NULL,SND_ASYNC);
 				playtheding=false;
 			}
-			if(tigrKeyDown(screen,TK_c)) //user progresses text/ends dialogue
+			if(KeyDown(screen,TK_c)) //user progresses text/ends dialogue
 			{
 					dialogue=false;
 					playing=true;
@@ -1818,8 +1820,8 @@ int main(int argc, char **argv)
 			//render (dialogue)-----
 			if(!dialogue_rendered)
 			{
-				tigrBlitAlpha(screen,spr_tb,0,140,0,0,320,100,1.0);
-				//tigrPrint(screen,tfont,40,150,tigrRGB(0xaa,0xaa,0xaa),dialogue_text);
+				BlitAlpha(screen,spr_tb,0,140,0,0,320,100,1.0);
+				//Print(screen,tfont,40,150,RGB(0xaa,0xaa,0xaa),dialogue_text);
 				dialogue_rendered=true;
 			}
 		}
@@ -1861,13 +1863,13 @@ int main(int argc, char **argv)
 		// if(true)
 		{
 			//render-----
-			tigrClear(screen, bg_color);
+			Clear(screen, bg_color);
 
 			//draw map
 			{
 				int i;
 				for(i=0;i<MAPMAXTILES;i++)
-					if(map.tile[i]) tigrBlitAlpha(screen,spr_tile[map.tile[i]],aotox(i,MAPW)*16,aotoy(i,MAPW)*16+cam_y,0,0,16,16,1.0);
+					if(map.tile[i]) BlitAlpha(screen,spr_tile[map.tile[i]],aotox(i,MAPW)*16,aotoy(i,MAPW)*16+cam_y,0,0,16,16,1.0);
 			}
 
 			//draw shots
@@ -1876,8 +1878,8 @@ int main(int argc, char **argv)
 				for(i=0;i<MAXSHOTS;i++)
 				{
 					if(!shots[i].exists) continue; //skip 'non-existant' shots
-					tigrBlitAlpha(screen,spr_shot[shots[i].type],(int)(shots[i].x)+4,(int)(shots[i].y)+2+cam_y,0,0,16,16,1.0);
-					// tigrBlitAlpha(screen,spr_tile[0],(int)((shots[i].x+24)/16)*16,(int)((shots[i].y+8)/16)*16,0,0,16,16,1.0);
+					BlitAlpha(screen,spr_shot[shots[i].type],(int)(shots[i].x)+4,(int)(shots[i].y)+2+cam_y,0,0,16,16,1.0);
+					// BlitAlpha(screen,spr_tile[0],(int)((shots[i].x+24)/16)*16,(int)((shots[i].y+8)/16)*16,0,0,16,16,1.0);
 				}
 			}
 
@@ -1887,22 +1889,22 @@ int main(int argc, char **argv)
 				for(i=0;i<MAXENS;i++)
 				{
 					if(!en[i].exists) continue; //skip dead ens
-					tigrBlitAlpha(screen,spr_en[en[i].type],(int)(en[i].x+6),(int)(en[i].y+4)+cam_y,0,0,16,16,1.0);
-					// tigrBlitAlpha(screen,spr_tile[0],(int)((en[i].x-8)/16)*16,(int)((en[i].y+8)/16)*16,0,0,16,16,1.0);
+					BlitAlpha(screen,spr_en[en[i].type],(int)(en[i].x+6),(int)(en[i].y+4)+cam_y,0,0,16,16,1.0);
+					// BlitAlpha(screen,spr_tile[0],(int)((en[i].x-8)/16)*16,(int)((en[i].y+8)/16)*16,0,0,16,16,1.0);
 				}
 			}
 
 			//draw player
 			if( (pl.exists && pl.hurt_time<=0) || (pl.exists && pl.hurt_time && rand()%2==0) ) //check if exists (and flicker if hurt)
-				tigrBlitAlpha(screen,spr_pl[pl_dir*2+(pl_anim/(MAXANIM/2))*on_ground],(int)(pl.x)+8,(int)(pl.y)+8+cam_y,0,0,16,16,1.0); //draw player
-			// tigrPrint(screen, tfont, 120, 110, tigrRGB(0xff, 0xff, 0xff), "words");
+				BlitAlpha(screen,spr_pl[pl_dir*2+(pl_anim/(MAXANIM/2))*on_ground],(int)(pl.x)+8,(int)(pl.y)+8+cam_y,0,0,16,16,1.0); //draw player
+			// Print(screen, tfont, 120, 110, RGB(0xff, 0xff, 0xff), "words");
 
 			//draw recording status
 			#ifdef RECORDER
 			{
 				char str[128];
 				sprintf(str,"rec(%c):%i/%i",recording?'y':'n',current_frame,RECORDLEN);
-				tigrPrint(screen,tfont,150,0,tigrRGB(0xff,recording?0x00:0xff,recording?0x00:0xff),str);
+				Print(screen,tfont,150,0,RGB(0xff,recording?0x00:0xff,recording?0x00:0xff),str);
 			}
 			#endif //RECORDER
 
@@ -1917,40 +1919,40 @@ int main(int argc, char **argv)
 				for(i=0;i<MAXHP;i++)
 					if(pl.hp>i)
 						str[i+4]='|';*/
-				//tigrPrint(screen,tfont,50,0,tigrRGB(0xff,0x00,0x61),"hp:");
+				//Print(screen,tfont,50,0,RGB(0xff,0x00,0x61),"hp:");
 				int i;
 				for(i=0;i<MAXHP;i++)
-					tigrBlitAlpha(screen,spr_hp[!(pl.hp>i)],70+i*8+i+1,0,0,0,8,8,1.0); //draw status of hp at each unit
+					BlitAlpha(screen,spr_hp[!(pl.hp>i)],70+i*8+i+1,0,0,0,8,8,1.0); //draw status of hp at each unit
 			}
 
 			if(title) //drawing title intro screen
 			{
-				tigrFill(screen,0,0,320,40,(TPixel){0});
-				tigrFill(screen,0,90,320,150,(TPixel){0});
+				Fill(screen,0,0,320,40,(Pixel){0});
+				Fill(screen,0,90,320,150,(Pixel){0});
 
 				title_xoff=(title_xoff-1)%320;
 
 				//DrawSineTitle(screen,spr_title,140+title_xoff,62);
 				//DrawSineTitle(screen,spr_title,140+title_xoff+320,60);
 
-				//tigrPrint(screen, tfont, 140, 130, tigrRGB(0xff, 0xff, 0xff), "Z to Start New\nC to Continue Last");
-				//tigrPrint(screen, tfont, 250, 220, tigrRGB(0xff, 0xff, 0xcc), "pvtroswold");
+				//Print(screen, tfont, 140, 130, RGB(0xff, 0xff, 0xff), "Z to Start New\nC to Continue Last");
+				//Print(screen, tfont, 250, 220, RGB(0xff, 0xff, 0xcc), "pvtroswold");
 			}
 
 			//draw editor things
 			#ifdef EDITOR
-				// tigrBlitAlpha(screen,spr_tile[0],(int)((pl.x+16)/16)*16,(int)((pl.y+16)/16)*16,0,0,16,16,1.0); //where is player
+				// BlitAlpha(screen,spr_tile[0],(int)((pl.x+16)/16)*16,(int)((pl.y+16)/16)*16,0,0,16,16,1.0); //where is player
 				char str[512];
 				sprintf(str,"t:%i\nmap:%i\nreg:%i",edittype,current_map,current_region);
-				tigrPrint(screen, tfont, 0,0, tigrRGB(0xff, 0xff, 0xff), str);
+				Print(screen, tfont, 0,0, RGB(0xff, 0xff, 0xff), str);
 				if(cursx>0 && cursy>0) //don't divide by zero!
-					tigrBlitAlpha(screen,spr_tile[0],(cursx/16)*16,(cursy/16)*16,0,0,16,16,1.0); //draw editor cursor
+					BlitAlpha(screen,spr_tile[0],(cursx/16)*16,(cursy/16)*16,0,0,16,16,1.0); //draw editor cursor
 			#endif //EDITOR
 
-			// tigrUpdate(screen); //done in tigr window while loop
+			// Update(screen); //done in  window while loop
 		}
 		// Sleep(10); //keep from lagging??? possibly give game less practical priority??? ??
-		tigrUpdate(screen);
+		Update(screen);
 		if(quit_game)break;
 		usleep(16000);
 	}
@@ -1992,5 +1994,5 @@ int main(int argc, char **argv)
 		}
 
 	puts("bye");
-	tigrFree(screen);
+	Free(screen);
 }
