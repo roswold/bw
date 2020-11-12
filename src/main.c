@@ -106,6 +106,7 @@ int pl_anim;
 
 int cam_y=0; //for title intro rec
 int title_xoff=0;
+int isfullscreen=false;
 
 int recorded_input[RECORDLEN]; //store inputs frame-by-frame for replay
 int current_frame=0; //should start when recording==true
@@ -189,6 +190,15 @@ void Update(Gfx*scr)
 	{
 		switch(e.type)
 		{
+			case SDL_KEYDOWN:
+				if(e.key.keysym.sym==SDLK_F4)
+				{
+					puts("f4 y'all");
+					SDL_SetWindowFullscreen(scr->win,
+							!isfullscreen);
+					isfullscreen=!isfullscreen;
+				}
+				break;
 			case SDL_QUIT:
 				playing=0;
 				title=0;
@@ -250,7 +260,7 @@ Gfx*Window(uint32_t w,uint32_t h,char*title,uint32_t flags)
 	t->win=SDL_CreateWindow(title,
 			SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED,
-			w,h,0);
+			w,h,SDL_WINDOW_SHOWN);
 	t->w=w;
 	t->h=h;
 	t->ren=SDL_CreateRenderer(t->win,-1,0);
@@ -1997,7 +2007,7 @@ quit:
 	for(int i=0;i<5;++i)
 		if(songs[i])
 			Mix_FreeMusic(songs[i]);
-	for(int i=0;i<5;++i)
+	for(int i=0;i<10;++i)
 		if(sounds[i])
 			Mix_FreeChunk(sounds[i]);
 	Free(screen);
