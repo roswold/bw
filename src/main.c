@@ -286,6 +286,14 @@ void PlaySound(char*fn,void*v,uint32_t flags)
 	// Play sound
 }
 
+void PlaySong(Mix_Music**songs)
+{
+	if(current_region==5)
+		Mix_PlayMusic(songs[0],-1);
+	else
+		Mix_PlayMusic(songs[current_region],-1);
+}
+
 void Clear(Gfx*scr,Pixel col)
 {
 	SDL_SetRenderDrawColor(scr->ren,col.r,col.g,col.b,col.a);
@@ -866,7 +874,7 @@ void Reset(struct Ent *pl,struct Map *map,Mix_Music**songs)
 
 	#ifdef SOUND
 	if(!title)
-		Mix_PlayMusic(songs[current_region],-1);
+		PlaySong(songs);
 
 	if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
 	if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
@@ -1002,20 +1010,20 @@ int main(int argc, char**argv)
 
 	// Open all music files
 	Mix_Music*songs[5];
-	songs[0]=Mix_LoadMUS("data/sfx/scatterbrain.mp3");
+	songs[0]=Mix_LoadMUS("data/sfx/upsanddowns.mp3");
 	songs[1]=Mix_LoadMUS("data/sfx/enthusra.mp3");
 	songs[2]=Mix_LoadMUS("data/sfx/forward.mp3");
 	songs[3]=Mix_LoadMUS("data/sfx/beatem.mp3");
-	songs[4]=Mix_LoadMUS("data/sfx/upsanddowns.mp3");
+	songs[4]=Mix_LoadMUS("data/sfx/scatterbrain.mp3");
 	for(int i=0;i<5;++i)
 		if(!songs[i])
 			printf("error: song: '%s'\n",Mix_GetError());
 
 	if(title)
-		Mix_PlayMusic(songs[4],-1);
+		Mix_PlayMusic(songs[0],-1);
 	else
 	{
-		Mix_PlayMusic(songs[current_region],-1);
+		PlaySong(songs);
 		if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
 		if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
 		if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
@@ -1088,7 +1096,6 @@ int main(int argc, char**argv)
 		// Global -----
 		if(KeyDown(screen,TK_ESCAPE)) //go back to title
 		{
-			puts("pressed ESCAPE");
 			if(!title)
 			{
 				title=true;
@@ -1108,11 +1115,8 @@ int main(int argc, char**argv)
 
 				//stop everything and play title song
 				Mix_PauseMusic();
-				Mix_PauseMusic();
-				Mix_PauseMusic();
-				Mix_PauseMusic();
 
-				Mix_PlayMusic(songs[4],-1);
+				Mix_PlayMusic(songs[0],-1);
 			}
 			else //quit game
 				goto quit;
@@ -1153,7 +1157,7 @@ int main(int argc, char**argv)
 			if(playing && !title)
 			{
 				#ifdef SOUND
-				Mix_PlayMusic(songs[current_region],-1);
+				PlaySong(songs);
 				if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
 				if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
 				if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
@@ -1483,9 +1487,7 @@ int main(int argc, char**argv)
 					//change the music
 					#ifdef SOUND
 					if(old_region!=current_region && !title)
-					{
-						Mix_PlayMusic(songs[current_region],-1);
-					}
+						PlaySong(songs);
 
 					if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
 					if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
@@ -1558,7 +1560,7 @@ int main(int argc, char**argv)
 				pl.exists=false;
 
 				drawing=false;
-				playing=false;
+				playing=true;
 				dialogue=true;
 				dialogue_rendered=false;
 				gameover=true;
@@ -1641,7 +1643,7 @@ int main(int argc, char**argv)
 									{
 										playtheding=true;
 										sprintf(dialogue_text,"Game is saved!\nHP restored!\nPress C to continue");
-										playing=false;
+										playing=true;
 										drawing=false;
 										dialogue=true;
 										pl.hp=MAXHP;
@@ -1663,7 +1665,7 @@ int main(int argc, char**argv)
 										if(current_map==204) //message after original fight
 										{
 											sprintf(dialogue_text,"You've obtained the double jump!!!\nJump in-air to perform the double jump.\nPress C to continue");
-											playing=false;
+											playing=true;
 											drawing=false;
 											dialogue=true;
 											dialogue_rendered=false;
@@ -1700,7 +1702,7 @@ int main(int argc, char**argv)
 										{
 										playtheding=true;
 										sprintf(dialogue_text,"You've obtained a weapon upgrade!\nPress C to continue");
-										playing=false;
+										playing=true;
 										drawing=false;
 										dialogue=true;
 										dialogue_rendered=false;
@@ -1735,7 +1737,7 @@ int main(int argc, char**argv)
 										{
 										playtheding=true;
 										sprintf(dialogue_text,"Suit upgrade!\nMobility enhanced! Damage reduced by 1/2!\nPress C to continue");
-										playing=false;
+										playing=true;
 										drawing=false;
 										dialogue=true;
 										dialogue_rendered=false;
@@ -1747,7 +1749,7 @@ int main(int argc, char**argv)
 										{
 										playtheding=true;
 										sprintf(dialogue_text,"You beat the whooole game!\nThanks for playing!!!!!\nPress C to continue");
-										playing=false;
+										playing=true;
 										drawing=false;
 										dialogue=true;
 										dialogue_rendered=false;
@@ -1826,21 +1828,14 @@ int main(int argc, char**argv)
 					#ifdef SOUND
 
 					if(!title)
-					{
-						Mix_PlayMusic(songs[current_region],-1);
-					}
+						PlaySong(songs);
 
 					if(current_map==204 && firstbossdead) Mix_PauseMusic();
 					if(current_map==403 && secondbossdead) Mix_PauseMusic();
 					if(current_map==8   && thirdbossdead) Mix_PauseMusic();
 
 					#endif //SOUND
-
-					// #ifdef SOUND
-					// Mix_PlayMusic(songs[4],-1);
-					// #endif //SOUND
 				}
-				//printf("'C':%x\n",'C');
 			}
 
 			//render (dialogue)-----
