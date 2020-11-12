@@ -1,5 +1,5 @@
-CFLAGS=  -Wfatal-errors $(shell pkg-config --cflags sdl2 SDL2_image) -s
-LDFLAGS= $(shell pkg-config --libs sdl2 SDL2_image) -lm
+CFLAGS=  -Wfatal-errors $(shell pkg-config --cflags sdl2 SDL2_image SDL2_mixer) -s
+LDFLAGS= $(shell pkg-config --libs sdl2 SDL2_image SDL2_mixer) -lm
 
 all: ld48hr40
 ld48hr40: main.c

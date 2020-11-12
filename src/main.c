@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_mixer.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -123,9 +124,21 @@ struct Map
 	int tile[MAPMAXTILES];
 };
 
-void SetMusic();
+void SetMusic(Mix_Music**songs);
 
-#define mciSendString(cmd,file)
+//#define mciSendString(cmd,file)
+
+void mciSendString(char*cmd,char*file)
+{
+	if(strcmp(cmd,"play")==0)
+		printf("playing song '%s'\n",file);
+	else if(strcmp(cmd,"stop")==0)
+		printf("stopping song '%s'\n",file);
+	//Mix_Music*song=Mix_LoadMUS(file);
+	//Mix_FreeMusic();
+	//Mix_PlayMusic();
+}
+
 typedef union TPixel
 {
 	uint8_t a;
@@ -817,7 +830,7 @@ int OpenMap(struct Map *map,char *fname,int map_no)
 	return 0;
 }
 
-void Reset(struct Ent *pl,struct Map *map)
+void Reset(struct Ent *pl,struct Map *map,Mix_Music**songs)
 {
 	CreateEnt(pl,16,48,0);
 	pl->hp=MAXHP;
@@ -846,13 +859,11 @@ void Reset(struct Ent *pl,struct Map *map)
 
 	#ifdef SOUND
 	if(!title)
-	{
-		SetMusic();
-	}
+		SetMusic(songs);
 
-	if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-	if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-	if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+	if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
+	if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
+	if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
 	#endif //SOUND
 	printf("reset complete\n");
 }
@@ -937,41 +948,37 @@ void DrawSineTitle(Tigr *scr, Tigr *spr,int xpos,int ypos)
 	}
 }
 
-void SetMusic()
+void SetMusic(Mix_Music**songs)
 {
-	switch(current_region)
-	{
-		case 2: mciSendString("stop","data/sfx/enthusra.mp3"); //area 2
-				mciSendString("stop","data/sfx/upsanddowns.mp3");
-				mciSendString("stop","data/sfx/beatem.mp3");
-				mciSendString("stop","data/sfx/scatterbrain.mp3");
-				mciSendString("play","data/sfx/forward.mp3");
-				current_song_fname="data/sfx/forward.mp3"; break;
-		case 3: mciSendString("stop","data/sfx/enthusra.mp3"); //area 3
-				mciSendString("stop","data/sfx/upsanddowns.mp3");
-				mciSendString("stop","data/sfx/forward.mp3");
-				mciSendString("stop","data/sfx/scatterbrain.mp3");
-				mciSendString("play","data/sfx/beatem.mp3");
-				current_song_fname="data/sfx/beatem.mp3"; break;
-		case 4: mciSendString("stop","data/sfx/forward.mp3"); //area 4
-				mciSendString("stop","data/sfx/upsanddowns.mp3");
-				mciSendString("stop","data/sfx/beatem.mp3");
-				mciSendString("stop","data/sfx/enthusra.mp3");
-				mciSendString("play","data/sfx/scatterbrain.mp3");
-				current_song_fname="data/sfx/scatterbrain.mp3"; break;
-		case 5: mciSendString("stop","data/sfx/forward.mp3"); //area 5
-				mciSendString("stop","data/sfx/scatterbrain.mp3");
-				mciSendString("stop","data/sfx/beatem.mp3");
-				mciSendString("stop","data/sfx/enthusra.mp3");
-				mciSendString("play","data/sfx/upsanddowns.mp3");
-				current_song_fname="data/sfx/upsanddowns.mp3"; break;
-		default: mciSendString("stop","data/sfx/forward.mp3"); //area 1
-				mciSendString("stop","data/sfx/upsanddowns.mp3");
-				mciSendString("stop","data/sfx/beatem.mp3");
-				mciSendString("stop","data/sfx/scatterbrain.mp3");
-				mciSendString("play","data/sfx/enthusra.mp3");
-				current_song_fname="data/sfx/enthusra.mp3"; break;
-	}
+	puts("playing song...");
+	Mix_PauseMusic();
+	Mix_PlayMusic(songs[current_region],-1);
+	//switch(current_region)
+	//{
+		//case 2: Mix_PauseMusic();
+				//Mix_PlayMusic("data/sfx/forward.mp3");
+				////current_song_fname="data/sfx/forward.mp3";
+				//break;
+
+		//case 3: Mix_PauseMusic();
+				//Mix_PlayMusic("data/sfx/beatem.mp3");
+				////current_song_fname="data/sfx/beatem.mp3";
+				//break;
+
+		//case 4: Mix_PauseMusic();
+				//Mix_PlayMusic("data/sfx/scatterbrain.mp3");
+				////current_song_fname="data/sfx/scatterbrain.mp3";
+				//break;
+
+		//case 5: Mix_PauseMusic();
+				//Mix_PlayMusic("data/sfx/upsanddowns.mp3");
+				////current_song_fname="data/sfx/upsanddowns.mp3";
+				//break;
+
+		//default: Mix_PauseMusic();
+				//Mix_PlayMusic("data/sfx/enthusra.mp3");
+				////current_song_fname="data/sfx/enthusra.mp3"; break;
+	//}
 }
 
 
@@ -1004,31 +1011,42 @@ int main(int argc, char **argv)
 	MoveEn[8]=(*MoveEn9);
 
 	SDL_Init(SDL_INIT_EVERYTHING);
+	Mix_Init(MIX_INIT_MP3|MIX_INIT_OGG);
+	Mix_OpenAudio(44100,MIX_DEFAULT_FORMAT,2,1024);
 
 	#ifndef EDITOR
-	// Reset(&pl,&map);
+	// Reset(&pl,&map,songs);
 	// LoadGame(&pl,&map,"data/profile.dat");
 	#endif //EDITOR
 
 	#ifdef SOUND
+	Mix_Music*songs[5];
+	songs[0]=Mix_LoadMUS("data/sfx/beatem.mp3");
+	if(!songs[0])printf("error: song: '%s'\n",Mix_GetError());
+	songs[1]=Mix_LoadMUS("data/sfx/enthusra.mp3");
+	songs[2]=Mix_LoadMUS("data/sfx/forward.mp3");
+	songs[3]=Mix_LoadMUS("data/sfx/scatterbrain.mp3");
+	songs[4]=Mix_LoadMUS("data/sfx/upsanddowns.mp3");
+
+
 	//open all music files
-	mciSendString("open","data/sfx/forward.mp3");
-	mciSendString("open","data/sfx/enthusra.mp3");
+	//mciSendString("open","data/sfx/forward.mp3");
+	//mciSendString("open","data/sfx/enthusra.mp3");
 	// mciSendString("open","data/sfx/beatem.mp3");
 	// mciSendString("open","data/sfx/upsanddowns.mp3");
-	mciSendString("open","data/sfx/scatterbrain.mp3");
+	//mciSendString("open","data/sfx/scatterbrain.mp3");
 
 	if(title)
 	{
-		mciSendString("play","data/sfx/upsanddowns.mp3");
-		current_song_fname="data/sfx/upsanddowns.mp3";
+		Mix_PlayMusic(songs[4],-1);
+		//current_song_fname="data/sfx/upsanddowns.mp3";
 	}
 	else
 	{
-		SetMusic();
-		if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-		if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-		if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+		SetMusic(songs);
+		if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
+		if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
+		if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
 	}
 	#endif //SOUND
 
@@ -1112,12 +1130,12 @@ int main(int argc, char **argv)
 				srand(RECORDRNGVAL);
 
 				//stop everything and play title song
-				mciSendString("stop","data/sfx/enthusra.mp3");
-				mciSendString("stop","data/sfx/beatem.mp3");
-				mciSendString("stop","data/sfx/forward.mp3");
-				mciSendString("stop","data/sfx/scatterbrain.mp3");
+				Mix_PauseMusic();
+				Mix_PauseMusic();
+				Mix_PauseMusic();
+				Mix_PauseMusic();
 
-				mciSendString("play","data/sfx/upsanddowns.mp3");
+				Mix_PlayMusic(songs[4],-1);
 				current_song_fname="data/sfx/upsanddowns.mp3";
 			}
 			else //exit game
@@ -1139,7 +1157,7 @@ int main(int argc, char **argv)
 				playing=true;
 				title=false;
 				drawing=true;
-				Reset(&pl,&map);
+				Reset(&pl,&map,songs);
 			}
 
 			if(tigrKeyDown(screen,TK_c)) //continue
@@ -1161,10 +1179,10 @@ int main(int argc, char **argv)
 			if(playing && !title)
 			{
 				#ifdef SOUND
-				SetMusic();
-				if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-				if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-				if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+				SetMusic(songs);
+				if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
+				if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
+				if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
 				#endif //SOUND
 			}
 
@@ -1184,7 +1202,7 @@ int main(int argc, char **argv)
 		if(playing) //playing the game
 		{
 			//input-----
-			// if(tigrKeyDown(screen,SDL_SCANCODE_R)) Reset(&pl,&map);
+			// if(tigrKeyDown(screen,SDL_SCANCODE_R)) Reset(&pl,&map,songs);
 			// if(tigrKeyDown(screen,SDL_SCANCODE_E)) LoadGame(&pl,&map,"data/profile.dat");
 			// if(tigrKeyDown(screen,SDL_SCANCODE_W)) OpenMap(&map,"data/maps/map200.dat",200);
 			if(pl.exists)
@@ -1196,6 +1214,7 @@ int main(int argc, char **argv)
 					char str[512];
 					sprintf(str,"pause %s",current_song_fname);
 					mciSendString(str,"file");
+					Mix_PauseMusic();
 					#endif //SOUND
 					sprintf(dialogue_text,"press C to continue");
 					playing=false;
@@ -1502,12 +1521,12 @@ int main(int argc, char **argv)
 					#ifdef SOUND
 					if(old_region!=current_region && !title)
 					{
-						SetMusic();
+						SetMusic(songs);
 					}
 
-					if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-					if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-					if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+					if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
+					if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
+					if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
 					if( (current_map==8 && thirdbossdead==0) || (current_map==217 && thirdbossdead<2) )
 						realthirdboss=2; //have to kill both 'twins'
 
@@ -1670,7 +1689,7 @@ int main(int argc, char **argv)
 										mciSendString(str,"file");
 										#endif //SOUND
 										sprintf(dialogue_text,"Game is saved!\nHP restored!\nPress C to continue");
-										//playing=false;
+										playing=false;
 										drawing=false;
 										dialogue=true;
 										pl.hp=MAXHP;
@@ -1852,19 +1871,19 @@ int main(int argc, char **argv)
 					char str[512];
 					sprintf(str,"play %s repeat",current_song_fname);
 					mciSendString(str,"file");
-						if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-						if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
-						if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) mciSendString("stop","data/sfx/beatem.mp3");
+						if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
+						if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
+						if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
 					#endif //SOUND
 				}
 				if(gameover)
 				{
-					Reset(&pl,&map);
+					Reset(&pl,&map,songs);
 					LoadGame(&pl,&map,"data/profile.dat");
 
-					// Reset(&pl,&map); //do this first, in case load fails
+					// Reset(&pl,&map,songs); //do this first, in case load fails
 					// printf("%i\n",LoadGame(&pl,&map,"data/profile.dat"));
-					// if(LoadGame(&pl,&map,"data/profile.dat")) Reset(&pl,&map); //reset if load failed
+					// if(LoadGame(&pl,&map,"data/profile.dat")) Reset(&pl,&map,songs); //reset if load failed
 					// printf("game restarted\n");
 					ClearShots();
 					gameover=false; //I forgot this and it was a problem
@@ -1873,17 +1892,17 @@ int main(int argc, char **argv)
 
 					if(!title)
 					{
-						SetMusic();
+						SetMusic(songs);
 					}
 
-					if(current_map==204 && firstbossdead) mciSendString("stop","data/sfx/beatem.mp3");
-					if(current_map==403 && secondbossdead) mciSendString("stop","data/sfx/beatem.mp3");
-					if(current_map==8   && thirdbossdead) mciSendString("stop","data/sfx/beatem.mp3");
+					if(current_map==204 && firstbossdead) Mix_PauseMusic();
+					if(current_map==403 && secondbossdead) Mix_PauseMusic();
+					if(current_map==8   && thirdbossdead) Mix_PauseMusic();
 
 					#endif //SOUND
 
 					// #ifdef SOUND
-					// mciSendString("play","data/sfx/upsanddowns.mp3");
+					// Mix_PlayMusic(songs[4],-1);
 					// current_song_fname="data/sfx/upsanddowns.mp3";
 					// #endif //SOUND
 				}
