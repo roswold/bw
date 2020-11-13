@@ -1190,8 +1190,6 @@ int main(int argc, char**argv)
 				#endif //SOUND
 			}
 
-			Print(screen, 140, 120, (Pixel){.r=0xff, .g=0xff, .b=0xff}, "The Beforlorne Wander\nZ to Start New\nC to Continue Last");
-			Print(screen, 250, 220, (Pixel){.r=0xff, .g=0xff, .b=0xcc}, "pvtroswold");
 		}
 
 		// Playing the game -----
@@ -1981,7 +1979,9 @@ int main(int argc, char**argv)
 				//DrawSineTitle(screen,spr_title,140+title_xoff,62);
 				//DrawSineTitle(screen,spr_title,140+title_xoff+320,60);
 
-				Print(screen, 140, 130, (Pixel){.r=0xff, .g=0xff, .b=0xff}, "Z to Start New\nC to Continue Last");
+				Print(screen, 140, 120, (Pixel){.r=0xff, .g=0xff, .b=0xff},"The Beforlorne Wander");
+				Print(screen, 140, 132, (Pixel){.r=0xff, .g=0xff, .b=0xff},"Z to Start New");
+				Print(screen, 140, 144, (Pixel){.r=0xff, .g=0xff, .b=0xff},"C to Continue Last");
 				Print(screen, 250, 220, (Pixel){.r=0xff, .g=0xff, .b=0xcc}, "pvtroswold");
 			}
 
