@@ -6,3 +6,5 @@ ld48hr40: main.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 %: %.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+clean:
+	$(RM) ld48hr40 *.o

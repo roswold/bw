@@ -9,5 +9,5 @@ src/ld48hr40: src/main.c
 %: %.c
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 clean:
-	$(RM) ld48hr40
+	$(RM) ld48hr40 *.o
 	@make clean -C src
