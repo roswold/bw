@@ -208,10 +208,10 @@ void Update(Gfx*scr)
 				}
 				break;
 			case SDL_QUIT:
-				playing=0;
-				title=0;
-				drawing=0;
-				quit_game=1;
+				playing=false;
+				title=false;
+				drawing=false;
+				quit_game=true;
 				break;
 		}
 	}
@@ -281,7 +281,8 @@ Gfx*Window(uint32_t w,uint32_t h,char*title,uint32_t flags)
 
 int Closed(Gfx*t)
 {
-	return !(playing||title);
+	//return !(playing||title);
+	return quit_game;
 }
 
 uint8_t KeyDown(Gfx*t,uint32_t k)
@@ -1203,11 +1204,12 @@ int main(int argc, char**argv)
 			{
 				if(KeyDown(screen,TK_a) && !recording && !record_playback && !title)
 				{
-					PlaySound(sounds[1]);
 					#ifdef SOUND
+					//PlaySound(sounds[1]);
 					Mix_PauseMusic();
 					#endif //SOUND
 					sprintf(dialogue_text,"press C to continue");
+					playtheding=false;
 					playing=false;
 					drawing=false;
 					dialogue=true;
@@ -1585,7 +1587,7 @@ int main(int argc, char**argv)
 				pl.exists=false;
 
 				drawing=false;
-				playing=true;
+				playing=false;
 				dialogue=true;
 				dialogue_rendered=false;
 				gameover=true;
@@ -1668,7 +1670,7 @@ int main(int argc, char**argv)
 									{
 										playtheding=true;
 										sprintf(dialogue_text,"Game is saved!\nHP restored!\nPress C to continue");
-										playing=true;
+										playing=false;
 										drawing=false;
 										dialogue=true;
 										pl.hp=MAXHP;
@@ -1690,7 +1692,7 @@ int main(int argc, char**argv)
 										if(current_map==204) //message after original fight
 										{
 											sprintf(dialogue_text,"You've obtained the double jump!!!\nJump in-air to perform the double jump.\nPress C to continue");
-											playing=true;
+											playing=false;
 											drawing=false;
 											dialogue=true;
 											dialogue_rendered=false;
@@ -1727,7 +1729,7 @@ int main(int argc, char**argv)
 										{
 										playtheding=true;
 										sprintf(dialogue_text,"You've obtained a weapon upgrade!\nPress C to continue");
-										playing=true;
+										playing=false;
 										drawing=false;
 										dialogue=true;
 										dialogue_rendered=false;
@@ -1762,7 +1764,7 @@ int main(int argc, char**argv)
 										{
 										playtheding=true;
 										sprintf(dialogue_text,"Suit upgrade!\nMobility enhanced! Damage reduced by 1/2!\nPress C to continue");
-										playing=true;
+										playing=false;
 										drawing=false;
 										dialogue=true;
 										dialogue_rendered=false;
@@ -1774,7 +1776,7 @@ int main(int argc, char**argv)
 										{
 										playtheding=true;
 										sprintf(dialogue_text,"You beat the whooole game!\nThanks for playing!!!!!\nPress C to continue");
-										playing=true;
+										playing=false;
 										drawing=false;
 										dialogue=true;
 										dialogue_rendered=false;
@@ -1832,6 +1834,7 @@ int main(int argc, char**argv)
 				if(!gameover)
 				{
 					#ifdef SOUND
+					Mix_ResumeMusic();
 					if( (current_map==204 && firstbossdead!=0) || (current_map==115 && firstbossdead==2) ) Mix_PauseMusic();
 					if( (current_map==403 && secondbossdead!=0) || (current_map==117 && secondbossdead==2) ) Mix_PauseMusic();
 					if( (current_map==8 && thirdbossdead!=0) || (current_map==217 && thirdbossdead==2) ) Mix_PauseMusic();
@@ -1843,22 +1846,15 @@ int main(int argc, char**argv)
 					Reset(&pl,&map,songs);
 					LoadGame(&pl,&map,"data/profile.dat");
 
-					// Reset(&pl,&map,songs); //do this first, in case load fails
-					// printf("%i\n",LoadGame(&pl,&map,"data/profile.dat"));
-					// if(LoadGame(&pl,&map,"data/profile.dat")) Reset(&pl,&map,songs); //reset if load failed
-					// printf("game restarted\n");
 					ClearShots();
 					gameover=false; //I forgot this and it was a problem
 
 					#ifdef SOUND
-
 					if(!title)
 						PlaySong(songs);
-
 					if(current_map==204 && firstbossdead) Mix_PauseMusic();
 					if(current_map==403 && secondbossdead) Mix_PauseMusic();
 					if(current_map==8   && thirdbossdead) Mix_PauseMusic();
-
 					#endif //SOUND
 				}
 			}
@@ -1997,7 +1993,7 @@ int main(int argc, char**argv)
 
 			// Update(screen); //done in  window while loop
 		}
-		// Sleep(10); //keep from lagging??? possibly give game less practical priority??? ??
+
 		Update(screen);
 		if(quit_game)break;
 		usleep(16000);
