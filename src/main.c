@@ -1036,11 +1036,11 @@ int main(int argc, char**argv)
 
 	// Open all music files
 	Mix_Music*songs[5]={0};
-	songs[0]=Mix_LoadMUS("data/sfx/upsanddowns.mp3");
-	songs[1]=Mix_LoadMUS("data/sfx/enthusra.mp3");
-	songs[2]=Mix_LoadMUS("data/sfx/forward.mp3");
-	songs[3]=Mix_LoadMUS("data/sfx/beatem.mp3");
-	songs[4]=Mix_LoadMUS("data/sfx/scatterbrain.mp3");
+	songs[0]=Mix_LoadMUS("data/sfx/upsanddowns.ogg");
+	songs[1]=Mix_LoadMUS("data/sfx/enthusra.ogg");
+	songs[2]=Mix_LoadMUS("data/sfx/forward.ogg");
+	songs[3]=Mix_LoadMUS("data/sfx/beatem.ogg");
+	songs[4]=Mix_LoadMUS("data/sfx/scatterbrain.ogg");
 	for(int i=0;i<5;++i)
 		if(!songs[i])
 			printf("error: song: '%s'\n",Mix_GetError());
